@@ -91,6 +91,7 @@
             font-size: 18px;
             font-weight: 600;
             color: var(--accent-color);
+            transition: opacity 0.2s ease;
         }
 
         .badge {
@@ -183,14 +184,14 @@
     ];
 
     // ==========================================
-    // ЛОГИКА ОТРИСОВКИ (Менять не нужно)
+    // ЛОГИКА ОТРИСОВКИ И ПАРСИНГА <title>
     // ==========================================
     const manualMenu = document.getElementById('manual-menu');
     const autoMenu = document.getElementById('auto-menu');
     const autoSection = document.getElementById('auto-section');
     const statusEl = document.getElementById('status');
 
-    // Функция создания карточки
+    // Создание DOM-элемента карточки
     function createCard({ title, url, description, isPath, external }) {
         const link = document.createElement('a');
         link.href = url;
@@ -225,18 +226,40 @@
             link.appendChild(descEl);
         }
 
-        return link;
+        return { card: link, titleEl };
     }
 
-    // 1. Рисуем ручные ссылки мгновенно
+    // Извлечение <title> из HTML-файла с кэшированием в рамках сессии
+    async function fetchPageTitle(url, fallbackTitle) {
+        const cacheKey = `page_title_${url}`;
+        const cached = sessionStorage.getItem(cacheKey);
+        if (cached) return cached;
+
+        try {
+            const res = await fetch(url);
+            if (!res.ok) return fallbackTitle;
+
+            const html = await res.text();
+            const doc = new DOMParser().parseFromString(html, 'text/html');
+            const parsedTitle = doc.querySelector('title')?.textContent.trim();
+
+            const finalTitle = parsedTitle || fallbackTitle;
+            sessionStorage.setItem(cacheKey, finalTitle);
+            return finalTitle;
+        } catch {
+            return fallbackTitle;
+        }
+    }
+
+    // 1. Отрисовка ручных ссылок
     manualPages.forEach(page => {
-        manualMenu.appendChild(createCard(page));
+        const { card } = createCard(page);
+        manualMenu.appendChild(card);
     });
 
-    // Собираем список уже добавленных путей, чтобы не дублировать их при автопоиске
     const existingUrls = new Set(manualPages.map(p => p.url.replace(/^\.?\//, '')));
 
-    // 2. Подгружаем остальные страницы через GitHub API
+    // 2. Автозагрузка страниц из GitHub API + чтение их <title>
     async function loadRepoPages() {
         const apiUrl = `https://github.com{GITHUB_CONFIG.username}/${GITHUB_CONFIG.repo}/git/trees/${GITHUB_CONFIG.branch}?recursive=1`;
 
@@ -257,25 +280,32 @@
             statusEl.remove();
 
             if (autoFiles.length === 0) {
-                autoSection.remove(); // Скрываем второй блок, если новых страниц нет
+                autoSection.remove();
                 return;
             }
 
-            autoFiles.forEach(file => {
+            // Сначала быстро рисуем карточки по именам файлов, затем плавно обновляем заголовки
+            autoFiles.forEach(async (file) => {
                 const rawName = file.path.split('/').pop().replace('.html', '');
-                const formattedName = rawName.charAt(0).toUpperCase() + rawName.slice(1).replace(/[-_]/g, ' ');
+                const fallbackName = rawName.charAt(0).toUpperCase() + rawName.slice(1).replace(/[-_]/g, ' ');
 
-                autoMenu.appendChild(createCard({
-                    title: formattedName,
+                const { card, titleEl } = createCard({
+                    title: fallbackName,
                     url: file.path,
                     description: file.path,
                     isPath: true
-                }));
+                });
+
+                autoMenu.appendChild(card);
+
+                // Подгружаем реальный <title> страницы
+                const realTitle = await fetchPageTitle(file.path, fallbackName);
+                if (realTitle !== fallbackName) {
+                    titleEl.textContent = realTitle;
+                }
             });
 
         } catch (error) {
-            // Если API недоступен или настройки не заполнены, просто скрываем блок автопоиска,
-            // чтобы ручное меню продолжало работать без ошибок на экране
             autoSection.remove();
             console.warn('Автоподгрузка страниц отключена или не настроена:', error);
         }
