@@ -12,6 +12,8 @@
             --text-muted: #57606a;
             --border-color: #d0d7de;
             --accent-color: #0969da;
+            --badge-bg: #ddf4ff;
+            --badge-text: #0969da;
         }
 
         body {
@@ -43,6 +45,15 @@
             margin: 0;
         }
 
+        .section-title {
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            margin: 28px 0 12px 0;
+            font-weight: 600;
+        }
+
         .menu-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -68,14 +79,37 @@
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
         }
 
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 8px;
+            margin-bottom: 6px;
+        }
+
         .card-title {
             font-size: 18px;
             font-weight: 600;
             color: var(--accent-color);
-            margin-bottom: 6px;
+        }
+
+        .badge {
+            font-size: 11px;
+            background: var(--badge-bg);
+            color: var(--badge-text);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 500;
+            white-space: nowrap;
         }
 
         .card-desc {
+            font-size: 14px;
+            color: var(--text-muted);
+            line-height: 1.4;
+        }
+
+        .card-path {
             font-size: 13px;
             color: var(--text-muted);
             font-family: monospace;
@@ -83,7 +117,7 @@
 
         .status {
             color: var(--text-muted);
-            font-size: 15px;
+            font-size: 14px;
         }
     </style>
 </head>
@@ -92,88 +126,162 @@
 <div class="container">
     <header>
         <h1>Навигация по проекту</h1>
-        <p class="subtitle">Страницы загружаются автоматически из репозитория</p>
+        <p class="subtitle">Основные разделы и все страницы репозитория</p>
     </header>
 
-    <div id="status" class="status">Загрузка списка страниц...</div>
-    <nav id="menu" class="menu-grid"></nav>
+    <!-- Блок ручных ссылок -->
+    <div id="manual-section">
+        <div class="section-title">Избранное</div>
+        <nav id="manual-menu" class="menu-grid"></nav>
+    </div>
+
+    <!-- Блок автоматических ссылок -->
+    <div id="auto-section">
+        <div class="section-title">Все страницы репозитория</div>
+        <div id="status" class="status">Поиск других страниц...</div>
+        <nav id="auto-menu" class="menu-grid"></nav>
+    </div>
 </div>
 
 <script>
     // ==========================================
-    // НАСТРОЙКИ РЕПОЗИТОРИЯ (Укажите свои данные)
+    // 1. НАСТРОЙКИ РЕПОЗИТОРИЯ ДЛЯ АВТОПОИСКА
     // ==========================================
-    const CONFIG = {
-        username: "rivamonad",       // Например: "torvalds"
-        repo: "rivamonad.github.io",     // Например: "my-site" или "torvalds.github.io"
-        branch: "main",              // Ветка с сайтом (обычно "main" или "master")
-        
-        // Необязательно: красивые названия для конкретных файлов
-        customTitles: {
-            "about.html": "О проекте",
-            "docs/guide.html": "Руководство пользователя"
-        }
+    const GITHUB_CONFIG = {
+        username: "rivamonad",       // Ваш ник на GitHub
+        repo: "rivamonad.github.io/test",     // Название репозитория
+        branch: "main",              // Ветка ("main" или "master")
+        ignorePaths: ["404.html"]    // Файлы или папки (например "drafts/"), которые не нужно показывать
     };
 
     // ==========================================
-    // АВТОМАТИЧЕСКАЯ ЗАГРУЗКА ЧЕРЕЗ GITHUB API
+    // 2. РУЧНОЙ МАССИВ ССЫЛОК (Отображаются первыми)
     // ==========================================
-    const menuContainer = document.getElementById('menu');
+    const manualPages = [
+        {
+            title: "Тест",
+            url: "pages/test.html",
+            description: "test",
+            external: true
+        },
+        {
+            title: "О проекте",
+            url: "about.html",
+            description: "Основная информация и описание репозитория"
+        },
+        {
+            title: "Документация",
+            url: "docs/index.html",
+            description: "Инструкции, примеры кода и справочник"
+        },
+        {
+            title: "Мой профиль GitHub",
+            url: "https://github.com",
+            description: "Внешняя ссылка откроется в новой вкладке",
+            external: true
+        }
+    ];
+
+    // ==========================================
+    // ЛОГИКА ОТРИСОВКИ (Менять не нужно)
+    // ==========================================
+    const manualMenu = document.getElementById('manual-menu');
+    const autoMenu = document.getElementById('auto-menu');
+    const autoSection = document.getElementById('auto-section');
     const statusEl = document.getElementById('status');
 
-    async function loadPages() {
-        const apiUrl = `https://github.com{CONFIG.username}/${CONFIG.repo}/git/trees/${CONFIG.branch}?recursive=1`;
+    // Функция создания карточки
+    function createCard({ title, url, description, isPath, external }) {
+        const link = document.createElement('a');
+        link.href = url;
+        link.className = 'menu-card';
+
+        if (external) {
+            link.target = '_blank';
+            link.rel = 'noopener noreferrer';
+        }
+
+        const header = document.createElement('div');
+        header.className = 'card-header';
+
+        const titleEl = document.createElement('div');
+        titleEl.className = 'card-title';
+        titleEl.textContent = title;
+        header.appendChild(titleEl);
+
+        if (external) {
+            const badge = document.createElement('span');
+            badge.className = 'badge';
+            badge.textContent = '↗ Внешняя';
+            header.appendChild(badge);
+        }
+
+        link.appendChild(header);
+
+        if (description) {
+            const descEl = document.createElement('div');
+            descEl.className = isPath ? 'card-path' : 'card-desc';
+            descEl.textContent = description;
+            link.appendChild(descEl);
+        }
+
+        return link;
+    }
+
+    // 1. Рисуем ручные ссылки мгновенно
+    manualPages.forEach(page => {
+        manualMenu.appendChild(createCard(page));
+    });
+
+    // Собираем список уже добавленных путей, чтобы не дублировать их при автопоиске
+    const existingUrls = new Set(manualPages.map(p => p.url.replace(/^\.?\//, '')));
+
+    // 2. Подгружаем остальные страницы через GitHub API
+    async function loadRepoPages() {
+        const apiUrl = `https://github.com{GITHUB_CONFIG.username}/${GITHUB_CONFIG.repo}/git/trees/${GITHUB_CONFIG.branch}?recursive=1`;
 
         try {
             const response = await fetch(apiUrl);
-            if (!response.ok) throw new Error(`Ошибка GitHub API: ${response.status}`);
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
             
             const data = await response.json();
 
-            // Фильтруем: берем только .html файлы, исключая сам index.html в корне
-            const htmlFiles = data.tree.filter(item => 
-                item.type === 'blob' && 
-                item.path.endsWith('.html') && 
-                item.path !== 'index.html'
-            );
+            const autoFiles = data.tree.filter(item => {
+                if (item.type !== 'blob' || !item.path.endsWith('.html')) return false;
+                if (item.path === 'index.html') return false;
+                if (existingUrls.has(item.path)) return false;
+                if (GITHUB_CONFIG.ignorePaths.some(ignore => item.path.startsWith(ignore))) return false;
+                return true;
+            });
 
             statusEl.remove();
 
-            if (htmlFiles.length === 0) {
-                menuContainer.innerHTML = '<p class="status">Других HTML-страниц пока не найдено.</p>';
+            if (autoFiles.length === 0) {
+                autoSection.remove(); // Скрываем второй блок, если новых страниц нет
                 return;
             }
 
-            htmlFiles.forEach(file => {
-                const link = document.createElement('a');
-                link.href = file.path;
-                link.className = 'menu-card';
-
-                // Берем красивое имя из customTitles или делаем из имени файла
+            autoFiles.forEach(file => {
                 const rawName = file.path.split('/').pop().replace('.html', '');
                 const formattedName = rawName.charAt(0).toUpperCase() + rawName.slice(1).replace(/[-_]/g, ' ');
-                const titleText = CONFIG.customTitles[file.path] || formattedName;
 
-                const title = document.createElement('div');
-                title.className = 'card-title';
-                title.textContent = titleText;
-                link.appendChild(title);
-
-                const desc = document.createElement('div');
-                desc.className = 'card-desc';
-                desc.textContent = file.path;
-                link.appendChild(desc);
-
-                menuContainer.appendChild(link);
+                autoMenu.appendChild(createCard({
+                    title: formattedName,
+                    url: file.path,
+                    description: file.path,
+                    isPath: true
+                }));
             });
 
         } catch (error) {
-            statusEl.textContent = 'Не удалось загрузить список страниц. Проверьте настройки CONFIG.';
-            console.error(error);
+            // Если API недоступен или настройки не заполнены, просто скрываем блок автопоиска,
+            // чтобы ручное меню продолжало работать без ошибок на экране
+            autoSection.remove();
+            console.warn('Автоподгрузка страниц отключена или не настроена:', error);
         }
     }
 
-    loadPages();
+    loadRepoPages();
 </script>
 
 </body>
