@@ -1,63 +1,164 @@
 <!DOCTYPE html>
-<html lang="ru-RU">
-
+<html lang="ru">
 <head>
-<meta charset="utf-8">
-<title>Рандомайзер</title>
-</head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Мои страницы — GitHub Pages</title>
+    <style>
+        :root {
+            --bg-color: #f6f8fa;
+            --card-bg: #ffffff;
+            --text-main: #24292f;
+            --text-muted: #57606a;
+            --border-color: #d0d7de;
+            --accent-color: #0969da;
+        }
 
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 40px 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 680px;
+        }
+
+        header {
+            margin-bottom: 32px;
+        }
+
+        h1 {
+            font-size: 28px;
+            margin: 0 0 8px 0;
+        }
+
+        p.subtitle {
+            color: var(--text-muted);
+            margin: 0;
+        }
+
+        .menu-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 16px;
+        }
+
+        .menu-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 18px 20px;
+            text-decoration: none;
+            color: inherit;
+            transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .menu-card:hover {
+            border-color: var(--accent-color);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+        }
+
+        .card-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--accent-color);
+            margin-bottom: 6px;
+        }
+
+        .card-desc {
+            font-size: 14px;
+            color: var(--text-muted);
+            line-height: 1.4;
+        }
+    </style>
+</head>
 <body>
 
-	<div>
-		</br>
-		<span id="line_0"></span>
-		</br>
-		</br>
-		</br>
-		</br>
-		</br>
-		</br>
-		<button id="btn_0" onclick="rand()">rand</button>
-		<button id="btn_1" onclick="start_stop()" style="color: green;">start</button>
-	</div>
+<div class="container">
+    <header>
+        <h1>Навигация по проекту</h1>
+        <p class="subtitle">Выберите нужную страницу из списка ниже</p>
+    </header>
 
-
-<style>
-
-</style>
+    <!-- Сюда скрипт автоматически добавит карточки-ссылки -->
+    <nav id="menu" class="menu-grid"></nav>
+</div>
 
 <script>
-var rand_interval_stop = 1;
-var rand_interval_id;
-function start_stop(){
-   let name_btn = "";
-   let color_btn = "";
-   if(rand_interval_stop){
-		rand_interval_stop = 0;
-		name_btn = "stop";
-		color_btn = "red";
-		rand_interval_id = setInterval(rand,1);		
-   }else{
-		rand_interval_stop = 1;
-		name_btn = "start";
-		color_btn = "green";
-		clearInterval(rand_interval_id);
-   }      
-   document.getElementById("btn_1").innerText = name_btn;
-   document.getElementById("btn_1").style.color = color_btn;
-   return;
-}
+    // ==========================================
+    // НАСТРОЙКА ССЫЛОК МЕНЮ
+    // Просто добавляйте новые объекты в этот массив
+    // ==========================================
+    const pages = [
+		{
+			title: "Тест",
+			url: "pages/test.html",
+			description: "Описание",
+			external: true
+		},
+        {
+            title: "О проекте",
+            url: "about.html",
+            description: "Основная информация и описание репозитория"
+        },
+        {
+            title: "Документация",
+            url: "docs/index.html",
+            description: "Инструкции, примеры кода и справочник"
+        },
+        {
+            title: "Контакты",
+            url: "contacts.html",
+            description: "Ссылки на соцсети и обратная связь"
+        },
+        {
+            title: "Мой профиль GitHub",
+            url: "https://github.com",
+            description: "Внешняя ссылка (откроется в новой вкладке)",
+            external: true // Необязательный параметр: true — открыть в новой вкладке
+        }
+    ];
 
-function rand(){      
-   document.getElementById("line_0").innerText = Math.random();
-   return;
-}
+    // ==========================================
+    // ГЕНЕРАЦИЯ МЕНЮ (менять не обязательно)
+    // ==========================================
+    const menuContainer = document.getElementById('menu');
 
+    pages.forEach(page => {
+        const link = document.createElement('a');
+        link.href = page.url;
+        link.className = 'menu-card';
 
+        if (page.external) {
+            link.target = '_blank';
+            link.rel = 'noopener noreferrer';
+        }
 
+        const title = document.createElement('div');
+        title.className = 'card-title';
+        title.textContent = page.title;
+        link.appendChild(title);
+
+        if (page.description) {
+            const desc = document.createElement('div');
+            desc.className = 'card-desc';
+            desc.textContent = page.description;
+            link.appendChild(desc);
+        }
+
+        menuContainer.appendChild(link);
+    });
 </script>
 
-
 </body>
-
 </html>
