@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Мои страницы — GitHub Pages</title>
+    <style>
+        :root {
+            --bg-color: #f6f8fa;
+            --card-bg: #ffffff;
+            --text-main: #24292f;
+            --text-muted: #57606a;
+            --border-color: #d0d7de;
+            --accent-color: #0969da;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 40px 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 680px;
+        }
+
+        header {
+            margin-bottom: 32px;
+        }
+
+        h1 {
+            font-size: 28px;
+            margin: 0 0 8px 0;
+        }
+
+        p.subtitle {
+            color: var(--text-muted);
+            margin: 0;
+        }
+
+        .menu-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 16px;
+        }
+
+        .menu-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 18px 20px;
+            text-decoration: none;
+            color: inherit;
+            transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .menu-card:hover {
+            border-color: var(--accent-color);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+        }
+
+        .card-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--accent-color);
+            margin-bottom: 6px;
+        }
+
+        .card-desc {
+            font-size: 13px;
+            color: var(--text-muted);
+            font-family: monospace;
+        }
+
+        .status {
+            color: var(--text-muted);
+            font-size: 15px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>Навигация по проекту</h1>
+        <p class="subtitle">Страницы загружаются автоматически из репозитория</p>
+    </header>
+
+    <div id="status" class="status">Загрузка списка страниц...</div>
+    <nav id="menu" class="menu-grid"></nav>
+</div>
+
+<script>
+    // ==========================================
+    // НАСТРОЙКИ РЕПОЗИТОРИЯ (Укажите свои данные)
+    // ==========================================
+    const CONFIG = {
+        username: "rivamonad",       // Например: "torvalds"
+        repo: "rivamonad.github.io",     // Например: "my-site" или "torvalds.github.io"
+        branch: "main",              // Ветка с сайтом (обычно "main" или "master")
+        
+        // Необязательно: красивые названия для конкретных файлов
+        customTitles: {
+            "about.html": "О проекте",
+            "docs/guide.html": "Руководство пользователя"
+        }
+    };
+
+    // ==========================================
+    // АВТОМАТИЧЕСКАЯ ЗАГРУЗКА ЧЕРЕЗ GITHUB API
+    // ==========================================
+    const menuContainer = document.getElementById('menu');
+    const statusEl = document.getElementById('status');
+
+    async function loadPages() {
+        const apiUrl = `https://github.com{CONFIG.username}/${CONFIG.repo}/git/trees/${CONFIG.branch}?recursive=1`;
+
+        try {
+            const response = await fetch(apiUrl);
+            if (!response.ok) throw new Error(`Ошибка GitHub API: ${response.status}`);
+            
+            const data = await response.json();
+
+            // Фильтруем: берем только .html файлы, исключая сам index.html в корне
+            const htmlFiles = data.tree.filter(item => 
+                item.type === 'blob' && 
+                item.path.endsWith('.html') && 
+                item.path !== 'index.html'
+            );
+
+            statusEl.remove();
+
+            if (htmlFiles.length === 0) {
+                menuContainer.innerHTML = '<p class="status">Других HTML-страниц пока не найдено.</p>';
+                return;
+            }
+
+            htmlFiles.forEach(file => {
+                const link = document.createElement('a');
+                link.href = file.path;
+                link.className = 'menu-card';
+
+                // Берем красивое имя из customTitles или делаем из имени файла
+                const rawName = file.path.split('/').pop().replace('.html', '');
+                const formattedName = rawName.charAt(0).toUpperCase() + rawName.slice(1).replace(/[-_]/g, ' ');
+                const titleText = CONFIG.customTitles[file.path] || formattedName;
+
+                const title = document.createElement('div');
+                title.className = 'card-title';
+                title.textContent = titleText;
+                link.appendChild(title);
+
+                const desc = document.createElement('div');
+                desc.className = 'card-desc';
+                desc.textContent = file.path;
+                link.appendChild(desc);
+
+                menuContainer.appendChild(link);
+            });
+
+        } catch (error) {
+            statusEl.textContent = 'Не удалось загрузить список страниц. Проверьте настройки CONFIG.';
+            console.error(error);
+        }
+    }
+
+    loadPages();
+</script>
+
+</body>
+</html>
