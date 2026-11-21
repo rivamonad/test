@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="ru-RU">
+
+<head>
+<meta charset="utf-8">
+<title>Рандомайзер</title>
+</head>
+
+<body>
+
+	<div>
+		</br>
+		<span id="line_0"></span>
+		</br>
+		</br>
+		</br>
+		</br>
+		</br>
+		</br>
+		<button id="btn_0" onclick="rand()">rand</button>
+		<button id="btn_1" onclick="start_stop()" style="color: green;">start</button>
+	</div>
+
+
+<style>
+
+</style>
+
+<script>
+var rand_interval_stop = 1;
+var rand_interval_id;
+function start_stop(){
+   let name_btn = "";
+   let color_btn = "";
+   if(rand_interval_stop){
+		rand_interval_stop = 0;
+		name_btn = "stop";
+		color_btn = "red";
+		rand_interval_id = setInterval(rand,1);		
+   }else{
+		rand_interval_stop = 1;
+		name_btn = "start";
+		color_btn = "green";
+		clearInterval(rand_interval_id);
+   }      
+   document.getElementById("btn_1").innerText = name_btn;
+   document.getElementById("btn_1").style.color = color_btn;
+   return;
+}
+
+function rand(){      
+   document.getElementById("line_0").innerText = Math.random();
+   return;
+}
+
+
+
+</script>
+
+
+</body>
+
+</html>
